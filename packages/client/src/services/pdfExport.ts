@@ -1,4 +1,6 @@
 import { fdate, money, numfmt, formatPlateDisplay, toast } from './ui.js';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 export function statementHTML(orders: any[], v: any, settings: any = {}) {
   const shopName = (settings.shop_name || 'GÜVEN OTO').toUpperCase();
@@ -167,8 +169,8 @@ export async function exportStatementPDF(orders: any[], vehicle: any, settings: 
 
   toast('Döküm hazırlanıyor...');
 
-  // Check if html2canvas and jspdf exist
-  if (win.html2canvas && win.jspdf) {
+  // html2canvas ve jsPDF uygulamaya gömülüdür (çevrimdışı çalışır).
+  {
     const host = document.createElement('div');
     host.id = 'stmt-host';
     host.style.cssText = 'position:fixed;left:-12000px;top:0;width:794px;background:#fff;z-index:9999;';
@@ -179,7 +181,7 @@ export async function exportStatementPDF(orders: any[], vehicle: any, settings: 
       try { await (document as any).fonts?.ready; } catch {}
 
       const stmtEl = host.querySelector('#stmt') as HTMLElement;
-      const canvas = await win.html2canvas(stmtEl, {
+      const canvas = await html2canvas(stmtEl, {
         scale: 2,
         backgroundColor: '#ffffff',
         useCORS: true,
@@ -193,7 +195,7 @@ export async function exportStatementPDF(orders: any[], vehicle: any, settings: 
         }
       });
 
-      const pdf = new win.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
+      const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
       const pw = pdf.internal.pageSize.getWidth();
       const ph = pdf.internal.pageSize.getHeight();
       const k = pw / canvas.width;

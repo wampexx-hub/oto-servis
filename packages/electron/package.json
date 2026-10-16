@@ -1,36 +1,67 @@
 {
   "name": "@oto-servis/electron",
   "version": "1.0.0",
+  "productName": "Oto Servis Yonetimi",
+  "description": "Oto Servis Yönetim Sistemi - Windows çevrimdışı masaüstü uygulaması",
+  "author": "Oto Servis",
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",
-    "dist:win": "electron-builder --win nsis"
+    "prepare:native": "node scripts/prepare-native.mjs",
+    "build:win": "npm run build --workspace=@oto-servis/shared && npm run build --workspace=@oto-servis/client && npm run build:bundle --workspace=@oto-servis/server",
+    "dist:win": "npm run build:win && npm run prepare:native && electron-builder --win nsis --x64"
+  },
+  "devDependencies": {
+    "7zip-bin": "^5.2.0",
+    "electron": "30.5.1",
+    "electron-builder": "24.13.3"
   },
   "build": {
     "appId": "com.otoservis.app",
     "productName": "Oto Servis Yonetimi",
+    "copyright": "Copyright © Oto Servis",
     "directories": {
       "output": "dist-electron"
     },
+    "npmRebuild": false,
+    "asar": true,
+    "files": [
+      "main.cjs",
+      "preload.cjs"
+    ],
+    "extraResources": [
+      {
+        "from": "../server/dist-bundle",
+        "to": "server"
+      },
+      {
+        "from": "native/node_modules",
+        "to": "server/node_modules"
+      },
+      {
+        "from": "../client/dist",
+        "to": "client"
+      }
+    ],
     "win": {
-      "target": "nsis"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "signAndEditExecutable": false
     },
     "nsis": {
       "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Oto Servis"
-    },
-    "files": [
-      "main.cjs",
-      "../server/dist/**/*",
-      "../server/node_modules/**/*",
-      "../client/dist/**/*"
-    ]
-  },
-  "devDependencies": {
-    "electron": "^30.0.1",
-    "electron-builder": "^24.13.3"
+      "shortcutName": "Oto Servis",
+      "artifactName": "Oto-Servis-Kurulum-${version}.${ext}",
+      "runAfterFinish": true
+    }
   }
 }

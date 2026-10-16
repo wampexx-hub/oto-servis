@@ -6,7 +6,12 @@ node_modules/
 # Build outputs
 dist/
 build/
+dist-electron/
+dist-bundle/
 .tsbuildinfo
+
+# Electron native staging (üretimde prepare:native ile oluşturulur)
+packages/electron/native/
 
 # SQLite databases & temp files
 *.sqlite

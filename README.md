@@ -82,7 +82,11 @@ Oto tamir ve bakım servisleri için özel olarak geliştirilmiş; gerçek SQLit
 │   │       └── styles/        # Vanilla CSS tasarım sistemi (Açık/Koyu tema, Büyük yazı modu)
 │   │
 │   └── electron/              # Windows Masaüstü Çerçevesi (Electron + Gömülü SQLite & Sunucu)
-│       └── main.cjs
+│       ├── main.cjs           # Ana süreç: gömülü sunucuyu başlatır, pencere/menü/indirme yönetimi
+│       ├── preload.cjs        # Renderer'a güvenli köprü (window.otoNative)
+│       ├── scripts/
+│       │   └── prepare-native.mjs  # better-sqlite3'ü Electron ABI'si için hazırlar
+│       └── native/            # (üretilen) Electron için derlenmiş yerel modüller
 │
 ├── docker-compose.yml         # Tek komutla VPS dağıtımı
 ├── Dockerfile                 # Multi-stage üretim konteyneri
@@ -109,7 +113,7 @@ Tüm birim, entegrasyon, afet kurtarma ve 50.000 kayıtlık yük testlerini çal
 ```bash
 npm test
 ```
-*(Tüm 23 test dosyası 100% başarıyla geçmektedir)*
+*(Tüm 48 test / 9 dosya 100% başarıyla geçmektedir.)*
 
 ### 3. Geliştirme Modunda Çalıştırma
 ```bash
@@ -127,6 +131,8 @@ Tarayıcınızda açın:
 ---
 
 ## 📱 Yerel Ağda (Wi-Fi) Telefon ile Kullanım
+
+> **Not (masaüstü kurulum):** Güvenlik için gömülü sunucu yalnızca bu bilgisayara (`127.0.0.1`) bağlanır. Telefonların bağlanabilmesi için uygulamayı `OTO_HOST=0.0.0.0` ortam değişkeniyle çalıştırın (sunucu tüm yerel ağ arayüzlerini dinler; Windows Güvenlik Duvarı'nda izin istenebilir). Varsayılan olarak telefon erişimi kapalıdır.
 
 Masaüstü bilgisayarınızda sistem açıkken:
 1. **Ayarlar > Yerel Ağ (Wi-Fi QR)** sekmesine gidin.
@@ -149,14 +155,42 @@ Sunucunuzda `http://SUNUCU_IP:3001` adresinde hem API hem React arayüzü tek po
 
 ---
 
-## 💻 Windows Masaüstü (.exe) Paketi
+## 💻 Windows Masaüstü Kurulum Paketi (Çevrimdışı)
 
-Windows kurulum dosyası (`.exe`) oluşturmak için:
+Uygulama, Windows bilgisayara kurulduktan sonra **internet gerektirmeden** çalışır. Gerekli her şey (sunucu, arayüz, veritabanı motoru) tek kurulum dosyasının içindedir.
+
+### Kurulum dosyasını oluşturma (geliştirici)
+Kök dizinden tek komut:
 ```bash
-cd /root/oto-servis/packages/electron
 npm run dist:win
 ```
-Çıktı `dist-electron/` klasörü altına oluşturulur.
+Bu komut sırasıyla ortak kütüphaneyi, arayüzü ve sunucu paketini derler; `better-sqlite3` yerel modülünü Electron için hazırlar ve NSIS kurulum dosyasını üretir. Çıktı:
+```
+packages/electron/dist-electron/Oto-Servis-Kurulum-1.0.0.exe
+```
+> İlk derlemede `better-sqlite3` ve NSIS bileşenleri internetten indirilir; sonraki derlemeler çevrimdışı yapılabilir.
+
+### Son kullanıcı kurulumu
+1. `Oto-Servis-Kurulum-1.0.0.exe` dosyasını çalıştırın (yönetici izni gerekmez, kullanıcı bazlı kurulur).
+2. Başlat menüsü veya masaüstü kısayolundan **Oto Servis Yönetimi** uygulamasını açın.
+3. İlk açılışta **Yönetici Oluşturma Sihirbazı** çıkar; kendi kullanıcı adı ve şifrenizi belirleyin. (Kurulumda hazır/örnek kullanıcı yoktur.)
+4. Uygulama, gömülü sunucuyu boş bir yerel portta (otomatik seçilir, varsayılan `3001`) başlatır ve arayüzü uygulama penceresinde gösterir. Tüm veriler yalnızca bu bilgisayarda kalır.
+
+### Verilerin konumu ve yedekleme
+Veriler kullanıcı hesabınızın altında saklanır:
+```
+%APPDATA%\Oto Servis Yonetimi\
+├── data\       # oto-servis.sqlite, platform.sqlite (asıl veritabanları)
+├── uploads\    # araç fotoğrafları
+└── backups\    # otomatik ve elle alınan ZIP yedekleri
+```
+- **Ayarlar** ekranından:
+  - **Tam Yedek Al (ZIP):** Veritabanı + fotoğrafları tek arşivde indirip masaüstüne kaydeder.
+  - **Veritabanını Kaydet (.sqlite):** Sadece veritabanını tek dosya olarak dışa aktarır (başka PC'ye taşımak için idealdir).
+- Üst menüden **Veri klasörünü aç / Yedekler klasörünü aç** ile klasörlere hızlıca ulaşabilirsiniz.
+
+### Başka bilgisayara taşıma
+Yeni bilgisayara kurulum yapın, uygulamayı kapatın, eski bilgisayardan aldığınız `data` klasörünü (ve varsa `uploads`) yeni bilgisayardaki `%APPDATA%\Oto Servis Yonetimi\` altına kopyalayın ve uygulamayı yeniden açın.
 
 ---
 

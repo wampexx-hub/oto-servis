@@ -23,14 +23,22 @@ async function main() {
     console.error('[PLATFORM DB ERROR]', err);
   }
 
-  const { seedDatabase } = await import('./db/seed.js');
-  try {
-    await seedDatabase();
-  } catch (err) {
-    console.error('[SEED ERROR]', err);
+  // Örnek veri/tohumlama. Masaüstü dağıtımında kapatılarak ilk kurulum
+  // sihirbazının (yönetici oluşturma) çalışması sağlanır.
+  if (process.env.SEED_SAMPLE_DATA !== '0') {
+    const { seedDatabase } = await import('./db/seed.js');
+    try {
+      await seedDatabase();
+    } catch (err) {
+      console.error('[SEED ERROR]', err);
+    }
   }
 
-  const app = await buildApp();
+  const app = await buildApp({
+    staticDir: process.env.STATIC_DIR,
+    uploadDir: process.env.UPLOAD_DIR,
+    enableSwagger: process.env.DISABLE_SWAGGER !== '1'
+  });
 
   try {
     await app.listen({ port: PORT, host: HOST });

@@ -6,10 +6,15 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspace=@oto-servis/shared && npm run build --workspace=@oto-servis/server && npm run build --workspace=@oto-servis/client",
+    "build": "npm run build --workspace=@oto-servis/shared && npm run build --workspace=@oto-servis/server && npm run build:bundle --workspace=@oto-servis/server && npm run build --workspace=@oto-servis/client",
     "test": "npm run test --workspaces --if-present",
     "dev:server": "npm run dev --workspace=@oto-servis/server",
     "dev:client": "npm run dev --workspace=@oto-servis/client",
-    "start": "npm run start --workspace=@oto-servis/server"
+    "start": "npm run start --workspace=@oto-servis/server",
+    "start:desktop": "npm run start --workspace=@oto-servis/electron",
+    "dist:win": "npm run dist:win --workspace=@oto-servis/electron"
+  },
+  "devDependencies": {
+    "7zip-bin": "^5.2.0"
   }
 }

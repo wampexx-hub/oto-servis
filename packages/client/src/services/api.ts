@@ -78,3 +78,38 @@ export async function apiRequest<T = any>(
     );
   }
 }
+
+/**
+ * İkili (binary) içerik indirir (yedek ZIP veya .sqlite dosyası).
+ * Tarayıcıda indirme başlatır; Electron masaüstünde kaydetme penceresi açılır.
+ */
+export async function apiDownload(endpoint: string, fallbackName: string): Promise<void> {
+  const headers = new Headers();
+  if (authToken) {
+    headers.set('Authorization', `Bearer ${authToken}`);
+  }
+
+  const url = endpoint.startsWith('http')
+    ? endpoint
+    : `/api${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+
+  const response = await fetch(url, { headers, credentials: 'include' });
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new ApiError(data?.error || `İndirme başarısız oldu (${response.status})`, response.status);
+  }
+
+  const disposition = response.headers.get('Content-Disposition') || '';
+  const match = disposition.match(/filename="?([^"]+)"?/);
+  const filename = match?.[1] || fallbackName;
+
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = objectUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 4000);
+}

@@ -28,6 +28,15 @@ export function getBackupDirectory(): string {
   return defaultDir;
 }
 
+/** Fotoğrafların tutulduğu yükleme dizini (paketlenmiş masaüstünde UPLOAD_DIR). */
+export function getUploadDirectory(): string {
+  const custom = process.env.UPLOAD_DIR;
+  if (custom && custom.trim()) {
+    return custom;
+  }
+  return path.join(process.cwd(), 'uploads');
+}
+
 export async function createBackup(customDestDir?: string, ctx?: DbCtx) {
   const destDir = customDestDir || getBackupDirectory();
   if (!fs.existsSync(destDir)) {
@@ -63,7 +72,7 @@ export async function createBackup(customDestDir?: string, ctx?: DbCtx) {
     archive.file(tempDbSnapshot, { name: 'oto-servis.sqlite' });
 
     // 2. Add Uploads directory (photos)
-    const uploadsDir = path.join(process.cwd(), 'uploads');
+    const uploadsDir = getUploadDirectory();
     if (fs.existsSync(uploadsDir)) {
       archive.directory(uploadsDir, 'uploads');
     }
@@ -178,11 +187,12 @@ export async function restoreBackup(backupZipPath: string) {
   // Extract database
   zip.extractEntryTo('oto-servis.sqlite', dataDir, false, true);
 
-  // Extract uploads if present
-  const uploadsDir = path.join(process.cwd(), 'uploads');
+  // Extract uploads if present (göreli uploads/... yollarını koru)
+  const uploadsDir = getUploadDirectory();
+  const uploadsBase = path.dirname(uploadsDir);
   for (const entry of zipEntries) {
     if (entry.entryName.startsWith('uploads/') && !entry.isDirectory) {
-      zip.extractEntryTo(entry.entryName, process.cwd(), false, true);
+      zip.extractEntryTo(entry.entryName, uploadsBase, true, true);
     }
   }
 

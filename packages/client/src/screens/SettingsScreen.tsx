@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiRequest } from '../services/api.js';
+import { apiRequest, apiDownload } from '../services/api.js';
 import { toast, todayISO } from '../services/ui.js';
 
 interface SettingsScreenProps {
@@ -76,10 +76,22 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose, onSetti
     try {
       const res = await apiRequest('/backup/now', { method: 'POST' });
       if (res.success) {
-        toast('Yedek başarıyla alındı');
+        toast('Yedek alındı, kaydetme penceresi açılıyor...');
+        await apiDownload(`/backup/download/${res.result.backupFile}`, res.result.backupFile);
+        toast('Yedek başarıyla kaydedildi');
       }
     } catch (e: any) {
       toast(e.message || 'Yedekleme başarısız oldu.');
+    }
+  };
+
+  const handleExportDatabase = async () => {
+    toast('Veritabanı hazırlanıyor...');
+    try {
+      await apiDownload('/backup/export-db', `oto-servis-${todayISO()}.sqlite`);
+      toast('Veritabanı dosyası kaydedildi');
+    } catch (e: any) {
+      toast(e.message || 'Veritabanı dışa aktarılamadı.');
     }
   };
 
@@ -192,13 +204,22 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose, onSetti
 
           <h3>Yedek & Veri İndirme</h3>
           <div className="row">
+            <button className="btn btn-primary" type="button" onClick={handleBackupNow}>
+              Tam Yedek Al (ZIP) ve Kaydet
+            </button>
+            <button className="btn" type="button" onClick={handleExportDatabase}>
+              Veritabanını Kaydet (.sqlite)
+            </button>
+          </div>
+          <div className="row" style={{ marginTop: '8px' }}>
             <button className="btn" type="button" onClick={handleDownloadJSON}>
               Tüm kayıtları indir (JSON)
             </button>
-            <button className="btn" type="button" onClick={handleBackupNow}>
-              Sunucu Veritabanı Yedeği Al
-            </button>
           </div>
+          <p className="muted">
+            ZIP yedeği veritabanının canlı kopyasını ve araç fotoğraflarını içerir. Masaüstü uygulamasında
+            dosyayı kaydetmek istediğiniz klasörü seçebilirsiniz.
+          </p>
 
           {lanInfo?.qrDataUrl && (
             <>

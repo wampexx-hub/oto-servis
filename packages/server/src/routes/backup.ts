@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { createBackup, restoreBackup, getBackupStatus } from '../services/backupService.js';
 import path from 'path';
+import fs from 'fs';
 import { reqDb, reqSqlite, reqCtx } from '../tenantContext.js';
 
 export const backupRoutes: FastifyPluginAsync = async (fastify) => {
@@ -34,6 +35,41 @@ export const backupRoutes: FastifyPluginAsync = async (fastify) => {
     } catch (err: any) {
       return reply.status(500).send({ success: false, error: err.message });
     }
+  });
+
+  // Download a specific backup zip file
+  fastify.get('/download/:filename', {
+    schema: {
+      tags: ['Yedekleme'],
+      summary: 'Yedek ZIP dosyasını indir'
+    }
+  }, async (request, reply) => {
+    const filename = path.basename(String((request.params as any).filename || ''));
+    const status = await getBackupStatus();
+    const item = status.backups.find((b) => b.filename === filename);
+    if (!item || !fs.existsSync(item.fullPath)) {
+      return reply.status(404).send({ success: false, error: 'Yedek dosyası bulunamadı.' });
+    }
+    return reply
+      .header('Content-Disposition', `attachment; filename="${filename}"`)
+      .type('application/zip')
+      .send(fs.createReadStream(item.fullPath));
+  });
+
+  // Download the raw SQLite database file (live consistent snapshot)
+  fastify.get('/export-db', {
+    schema: {
+      tags: ['Yedekleme'],
+      summary: 'Ham SQLite veritabanı dosyasını indir (.sqlite)'
+    }
+  }, async (request, reply) => {
+    const sqlite = reqSqlite(request);
+    const buf = sqlite.serialize();
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    return reply
+      .header('Content-Disposition', `attachment; filename="oto-servis-${stamp}.sqlite"`)
+      .type('application/x-sqlite3')
+      .send(buf);
   });
 
   // Restore from a specific backup file

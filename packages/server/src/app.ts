@@ -26,6 +26,7 @@ declare module 'fastify' {
 
 export interface AppOptions {
   enableRateLimit?: boolean;
+  enableSwagger?: boolean;
   staticDir?: string;
   uploadDir?: string;
 }
@@ -66,28 +67,35 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
     });
   }
 
-  // Swagger OpenAPI Documentation
-  await app.register(fastifySwagger, {
-    openapi: {
-      info: {
-        title: 'Oto Servis Yönetim Sistemi API',
-        description: 'Araç, İş Emri, Parça, Kasa, Cari ve Hatırlatıcı Yönetim REST API Servisi',
-        version: '1.0.0'
-      },
-      servers: [{ url: '/api' }]
-    }
-  });
+  // Swagger OpenAPI Documentation. Masaüstü (paketlenmiş) derlemede statik
+  // varlıkları taşımak gerekmediğinden ortam değişkeniyle kapatılabilir.
+  const enableSwagger =
+    options.enableSwagger !== false && process.env.DISABLE_SWAGGER !== '1';
 
-  await app.register(fastifySwaggerUi, {
-    routePrefix: '/api/docs',
-    uiConfig: {
-      docExpansion: 'list',
-      deepLinking: false
-    }
-  });
+  if (enableSwagger) {
+    await app.register(fastifySwagger, {
+      openapi: {
+        info: {
+          title: 'Oto Servis Yönetim Sistemi API',
+          description: 'Araç, İş Emri, Parça, Kasa, Cari ve Hatırlatıcı Yönetim REST API Servisi',
+          version: '1.0.0'
+        },
+        servers: [{ url: '/api' }]
+      }
+    });
+
+    await app.register(fastifySwaggerUi, {
+      routePrefix: '/api/docs',
+      uiConfig: {
+        docExpansion: 'list',
+        deepLinking: false
+      }
+    });
+  }
 
   // Uploads directory for photos
-  const uploadDir = options.uploadDir || path.join(process.cwd(), 'uploads');
+  const uploadDir =
+    options.uploadDir || process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
   }
